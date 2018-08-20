@@ -4,19 +4,23 @@ package br.com.contas.service;
 
 import java.util.List;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import br.com.contas.dao.PessoaJuridicaDAO;
-import br.com.contas.domain.rdbs.PessoaFisica;
 import br.com.contas.domain.rdbs.PessoaJuridica;
 import br.com.contas.service.exception.ServiceException;
 
 @Service
 @Transactional
 public class PessoaJuridicaService {
+	
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
 	@Autowired
 	private PessoaJuridicaDAO dao;
@@ -37,15 +41,20 @@ public class PessoaJuridicaService {
 			Long idPessoa = pessoaService.criar(idTipoPessoa);
 
 			if (idPessoa == null) {
-				throw new ServiceException("Não foi possível criar a pessoa associada a um tipo");
+				throw new ServiceException("Não foi possível configurar pessa física");
 			}
 
 			PessoaJuridica pessoaJuridica = configurarPessoaJuridica(cnpj, razaoSocial, nomeFantasia, idPessoa);
 
 			return (Long) dao.save(pessoaJuridica);
 		} catch (ServiceException e) {
+			logger.error("Error", e);
 			throw new ServiceException(e.getMessage(), e);
+		} catch (ConstraintViolationException e) {
+			logger.error("Error", e);
+			throw new ServiceException(String.format("Já existe pessoa jurídica cadastrada com o cnpj: %s", cnpj), e);
 		} catch (Exception e) {
+			logger.error("Error", e);
 			throw new ServiceException("Não foi possível criar pessoa juridica", e);
 		}
 
@@ -84,7 +93,7 @@ public class PessoaJuridicaService {
 		}
 	}
 	
-	public PessoaFisica recuperarPorCnpj(String cnpj) throws ServiceException {
+	public PessoaJuridica recuperarPorCnpj(String cnpj) throws ServiceException {
 
 		try {
 			validarCnpj(cnpj);
@@ -98,10 +107,10 @@ public class PessoaJuridicaService {
 	public Long recuperarIdPorCnpj(String cnpj) throws ServiceException  {
 		
 		try {
-			PessoaFisica pessoaFisica = recuperarPorCnpj(cnpj);
-			return pessoaFisica.getIdPessoa();
+			PessoaJuridica pessoaJuridica = recuperarPorCnpj(cnpj);
+			return pessoaJuridica.getIdPessoa();
 		} catch (ServiceException e) {
-		
+			logger.error("Error", e);
 			throw new ServiceException("Falha ao recuperar id da pessoa física por cnpj", e);
 		}
 	}
@@ -111,6 +120,7 @@ public class PessoaJuridicaService {
 		try {
 			return dao.recuperarTodos();
 		} catch (Exception e) {
+			logger.error("Error", e);
 			throw new ServiceException("Não foi possível realizar a consulta", e);
 		}
 	}

@@ -8,7 +8,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
-@Entity(name = "PESSOA_JURIDICA")
+@Entity(name = "pessoa_juridica")
 public class PessoaJuridica implements Serializable{
 	
 	/**

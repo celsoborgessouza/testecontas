@@ -1,13 +1,12 @@
-package br.com.contas.controller;
+package br.com.contas.utils.rest;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.List;
 
-// Necessário utilizar anotação quando está utilizando JAXB
-//@XmlRootElement
-public class Response<T> {
+
+public class Payload<T> {
 
 	private String status;
 
@@ -19,65 +18,64 @@ public class Response<T> {
 
 	private String stackTrace;
 
-	public Response() {
-	}
+	
 
-	public static <T> Response OK(T object) {
+	public static <T> Payload<T> OK(T object) {
 		return OK("", object);
 	}
-
-	public static <T> Response OK(String string, T object) {
-		Response r = new Response();
+	
+	public static <T> Payload<T> OK(String string, T object) {
+		Payload<T> r = new Payload<T>();
 		r.setStatus("OK");
 		r.setMsg(string);
 		r.setObjeto(object);
 		return r;
 	}
-
-	public static <T> Response OK(List<T> list) {
+	
+	public static <T> Payload<?> OK(List<T> list) {
 		return OK("", list);
 	}
-
-	public static <T> Response OK(String string, List<T> list) {
-		Response r = new Response();
+	
+	public static <T> Payload<List<T>> OK(String string, List<T> list) {
+		Payload<List<T>> r = new Payload<List<T>>();
 		r.setStatus("OK");
 		r.setMsg(string);
 		r.setLista(list);
 		return r;
 	}
 
-	public static <T> Response Error(String string, T object) {
-		Response r = new Response();
-		r.setStatus("OK");
+	public static <T> Payload<T> Error(String string, T object) {
+		Payload<T> r = new Payload<T>();
+		r.setStatus("ERROR");
 		r.setMsg(string);
 		r.setObjeto(object);
 		return r;
 	}
 
-	public static <T> Response Error(String string, List<T> list) {
-		Response r = new Response();
+	public static <T> Payload<List<T>> Error(String string, List<T> list) {
+		Payload<List<T>> r = new Payload<List<T>>();
 		r.setStatus("OK");
 		r.setMsg(string);
 		r.setLista(list);
 		return r;
 	}
 
-	public static Response OK(String string) {
-		Response r = new Response();
+	public static Payload<String> OK(String string) {
+		Payload<String> r = new Payload<>();
 		r.setStatus("OK");
 		r.setMsg(string);
 		return r;
 	}
 
-	public static Response Error(String string) {
-		Response r = new Response();
+	public static Payload<String> Error(String string) {
+		Payload<String> r = new Payload<>();
 		r.setStatus("ERROR");
 		r.setMsg(string);
 		return r;
 	}
 
-	public static Response Error(String string, Throwable e) {
-		Response r = new Response();
+	public static Payload<String> Error(String string, Throwable e) {
+		Payload<String> r = new Payload<String>();
 		r.setStatus("ERROR");
 		r.setMsg(string);
 		r.setStackTrace(getStackTrace(e));

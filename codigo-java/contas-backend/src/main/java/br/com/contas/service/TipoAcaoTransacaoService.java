@@ -23,6 +23,17 @@ public class TipoAcaoTransacaoService {
 		}
 	}
 
+	public Long recuperarEstornoAporte() throws ServiceException {
+		
+		try {
+			
+			return dao.recuperarIdPorNome("ESTORNO_APORTE");
+		} catch (Exception e) {
+			
+			throw new ServiceException("Falha ao recuperar identificador da ação de aporte", e);
+		}
+	}
+
 	public Long recuperarTransferencia() throws ServiceException {
 
 		try {

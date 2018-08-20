@@ -5,6 +5,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,12 +21,14 @@ import br.com.contas.service.exception.ServiceException;
 @Transactional
 public class PessoaFisicaService {
 
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
 	@Autowired
 	private PessoaFisicaDAO dao;
 
 	@Autowired
 	private PessoaService pessoaService;
-	
+
 	@Autowired
 	private TipoPessoaService tipoPessoaService;
 
@@ -41,20 +46,25 @@ public class PessoaFisicaService {
 
 		try {
 			validarCamposCriacao(cpf, nomeCompleto, dataNascimento);
-			
+
 			Long idTipoPessoa = tipoPessoaService.recuperarIdPessoaFisica();
 			Long idPessoa = pessoaService.criar(idTipoPessoa);
 
 			if (idPessoa == null) {
-				throw new ServiceException("Não foi possívelcriar a pessoa associada a um tipo");
+				throw new ServiceException("Não foi possível configurar pessa física");
 			}
 
 			PessoaFisica pessoaFisica = configurarPessoaFisica(cpf, nomeCompleto, dataNascimento, idPessoa);
 
 			return (Long) dao.save(pessoaFisica);
 		} catch (ServiceException e) {
+			logger.error("Error", e);
 			throw new ServiceException(e.getMessage(), e);
+		} catch (ConstraintViolationException e) {
+			logger.error("Erro", e);
+			throw new ServiceException(String.format("Já existe pessoa física cadastrada com o cpf: %s", cpf), e);
 		} catch (Exception e) {
+			logger.error("Error", e);
 			throw new ServiceException("Não foi possível criar pessoa física", e);
 		}
 
@@ -63,14 +73,20 @@ public class PessoaFisicaService {
 	private PessoaFisica configurarPessoaFisica(String cpf, String nomeCompleto, String dataNascimento, Long idPessoa)
 			throws ServiceException {
 
-		Date date = stringToDate(dataNascimento);
+		try {
+			Date date = stringToDate(dataNascimento);
 
-		PessoaFisica pessoaFisica = new PessoaFisica();
-		pessoaFisica.setCpf(cpf);
-		pessoaFisica.setNomeCompleto(nomeCompleto);
-		pessoaFisica.setIdPessoa(idPessoa);
-		pessoaFisica.setDataNascimento(date);
-		return pessoaFisica;
+			PessoaFisica pessoaFisica = new PessoaFisica();
+			pessoaFisica.setCpf(cpf);
+			pessoaFisica.setNomeCompleto(nomeCompleto);
+			pessoaFisica.setIdPessoa(idPessoa);
+			pessoaFisica.setDataNascimento(date);
+			return pessoaFisica;
+		} catch (ServiceException e) {
+			throw new ServiceException(e.getMessage(), e);
+		} catch (Exception e) {
+			throw new ServiceException("Não foi possível criar pessoa física", e);
+		}
 	}
 
 	private Date stringToDate(String dataNascimento) throws ServiceException {
@@ -78,7 +94,7 @@ public class PessoaFisicaService {
 		try {
 			return new SimpleDateFormat("dd/MM/yyyy").parse(dataNascimento);
 		} catch (ParseException e) {
-			throw new ServiceException("Não foi possível cadastrar data de nascimento com um formato válido. Formato deve ser dd/MM/yyyy");
+			throw new ServiceException("Data de nascimento com formato válido. Formato deve ser dd/MM/yyyy");
 		}
 
 	}
@@ -88,21 +104,19 @@ public class PessoaFisicaService {
 		try {
 			validarCpf(cpf);
 			return dao.recuperarPorCpf(cpf);
-		} catch (Exception e) {
+		} catch (ServiceException e) {
 
 			throw new ServiceException("Falha ao recuperar pessoa física por cpf", e);
 		}
 	}
-	
-	public Long recuperarIdPorCpf(String cpf) throws ServiceException  {
-		
-		try {
-			PessoaFisica pessoaFisica = recuperarPorCpf(cpf);
-			return pessoaFisica.getIdPessoa();
-		} catch (ServiceException e) {
-		
-			throw new ServiceException("Falha ao recuperar id da pessoa física por cpf", e);
+
+	public Long recuperarIdPorCpf(String cpf) throws ServiceException {
+		PessoaFisica pessoaFisica = recuperarPorCpf(cpf);
+
+		if (pessoaFisica == null) {
+			throw new ServiceException(String.format("CPF %s não está cadastrado.", cpf));
 		}
+		return pessoaFisica.getIdPessoa();
 	}
 
 	/*
@@ -126,21 +140,21 @@ public class PessoaFisicaService {
 		if (StringUtils.isEmpty(cpf)) {
 			throw new ServiceException("'CPF' não pode ser nulo");
 		}
-		
+
 		if (cpf.trim().length() != 11) {
 			throw new ServiceException("'CPF' deve ter 11 dígitos");
 		}
 	}
-	
+
 	public List<PessoaFisica> recuperarTodos() throws ServiceException {
-		
+
 		try {
 			return dao.recuperarTodos();
 		} catch (Exception e) {
-			throw new ServiceException("Não foi possível realizar a consulta", e);
+
+			logger.error("Error", e);
+			throw new ServiceException("Não foi possível realizar todas as pessoas físicas", e);
 		}
 	}
-
-
 
 }

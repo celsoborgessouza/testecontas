@@ -12,7 +12,7 @@ import javax.persistence.Id;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-@Entity
+@Entity(name = "conta")
 public class Conta implements Serializable {
 
 	/**
@@ -28,7 +28,7 @@ public class Conta implements Serializable {
 	@Column(name = "nome")
 	private String nome;
 	
-	@Column(name = "data_nascimento")
+	@Column(name = "data_criacao")
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date dataCriacao;
 	
@@ -49,6 +49,9 @@ public class Conta implements Serializable {
 	
 	@Column(name = "id_pessoa")
 	private Long idPessoa;
+	
+	@Column(name = "id_conta_principal")
+	private Long idContaPrincipal;
 	
 	public Long getId() {
 		return id;
@@ -121,6 +124,16 @@ public class Conta implements Serializable {
 	public void setIdPessoa(Long idPessoa) {
 		this.idPessoa = idPessoa;
 	}
+
+	public Long getIdContaPrincipal() {
+		return idContaPrincipal;
+	}
+
+	public void setIdContaPrincipal(Long idContaPrincipal) {
+		this.idContaPrincipal = idContaPrincipal;
+	}
+
+
 	
 	
 }

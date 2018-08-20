@@ -23,14 +23,14 @@ public class TipoContaService {
 		}
 	}
 
-	public Long recuperarIdContaFilial() throws Exception {
+	public Long recuperarIdContaFilial() throws ServiceException {
 
 		try {
 
 			return dao.recuperarPorNome("FILIAL");
 		} catch (Exception e) {
 
-			throw new Exception("Falha ao recuperar tipo da conta", e);
+			throw new ServiceException("Falha ao recuperar tipo da conta", e);
 		}
 	}
 

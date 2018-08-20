@@ -53,6 +53,10 @@ public abstract class HibernateDAO<T> implements IHibernateDAO<T> {
 		getSession().update(entity);
 	}
 	
+	public void merge(T entity) {
+		getSession().merge(entity);
+	}
+	
 	/* (non-Javadoc)
 	 * @see br.com.contas.dao.IHibernateDAO#save(T)
 	 */

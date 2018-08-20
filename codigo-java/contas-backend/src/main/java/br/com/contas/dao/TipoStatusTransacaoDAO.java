@@ -19,7 +19,7 @@ public class TipoStatusTransacaoDAO extends HibernateDAO<TipoStatusTransacao>{
 		
 		Query q = getSession().createQuery("from tipo_status_transacao where nome = ?");
 		q.setString(0, nome);
-		SituacaoConta situacaoConta = (SituacaoConta) q.uniqueResult();
+		TipoStatusTransacao situacaoConta = (TipoStatusTransacao) q.uniqueResult();
 		return situacaoConta.getId();
 		
 	}

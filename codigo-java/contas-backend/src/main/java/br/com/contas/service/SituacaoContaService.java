@@ -17,7 +17,7 @@ public class SituacaoContaService {
 		
 		try {
 
-			return dao.recuperarIdPorNome("ATIVO");
+			return dao.recuperarIdPorNome("ATIVA");
 		} catch (Exception e) {
 			
 			throw new ServiceException("Falha ao recuperar situação da conta", e);
