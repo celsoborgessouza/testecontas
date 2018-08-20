@@ -1,0 +1,21 @@
+
+
+DONE - /pessoas-fisicas (GET) - Recuperar todas as pessoas físicas
+DONE - /pessoas-fisicas (PUT) - Criar pessoa física
+
+DONE - /pessoas-juridicas (GET) - Recuperar todas as pessoas jurídicas
+DONE - /pessoas-juridicas (PUT) - Criar pessoa juridica
+
+DONE - /pessoas-fisicas/{cpf}/matrizes (POST)   - Criar conta matriz para pessoa física
+DONE - /pessoas-fisicas/{cpf}/filiais  (POST)   - Criar conta filial para pessoa física 
+
+DONE - /pessoas-juridicas/{cnpj}/matrizes (POST) - Criar conta matriz para pessoa juridica
+DONE - /pessoas-juridicas/{cnpj}/filiais  (POST) - Criar conta filial para pessoa jurídica
+
+DONE    - /aporte                (POST)         - realizar aporte para conta matriz
+TO TEST - /estorno-aporte        (POST) - realizar estorno de aporte da conta matriz (EM TESTE)
+TO TEST - /transferencia         (POST)  - realizar transferencia entre contas (EM TESTE)
+TO DO   - /estorno-transferencia (POST) - realizar estorno de transferência entre cotnas
+
+TO DO   - tela de CRUD
+
