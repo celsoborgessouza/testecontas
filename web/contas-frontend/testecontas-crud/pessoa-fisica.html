@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Contas</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/estilos.css" rel="stylesheet">
+  </head>
+  <body>
+
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6">
+          <h2>Pessoa Física </h2>
+        </div><!--// .col-md-6 -->
+      </div><!--// .row -->
+	  
+	  <div class="row">
+        <div class="col-md-6">
+		  <i id="msg">&nbsp </i>
+        </div><!--// .col-md-6 -->
+      </div><!--// .row -->
+
+      <div class="row">
+        <div class="col-md-6">
+          <table id="pfTable" class="table table-bordered table-condensed table-striped">
+            <thead>
+              <tr>
+                <th>Id</th>
+                <th>Nome Completo</th>
+                <th>CPF</th>
+				<th>Data de Nascimento</th>
+                <th>Editar</th>
+                <th>Excluir</th>
+              </tr>
+            </thead>
+          </table>
+        </div><!--// .col-md-6 -->
+
+        <div class="col-md-6">
+          <div class="panel panel-primary">
+            <div class="panel-heading">Pessoa Física</div>
+            <div class="panel-body">
+              <form>
+				<input type="hidden" id="pf_id" >
+                <div class="form-group">
+                  <label for="title">Nome Completo</label>
+                  <input type="text" name="title" id="pf_nome" class="form-control input-lg" placeholder="Nome Completo">
+                </div>
+
+                <div class="form-group">
+                  <label for="author">CPF</label>
+                  <input type="text" name="author" id="pf_cpf" class="form-control input-lg" placeholder="CPF">
+                </div>
+
+                <div class="form-group">
+                  <label for="publisher">Data de Nascimento <i style="color:red" id="msgInput"></i></label>
+                  <input type="text" name="publisher" id="pf_data_nascimento" class="form-control input-lg" placeholder="Data de Nascimento">
+                </div>
+
+                <div class="form-group">
+                  <button type="button" id="createUpdateButton" onclick="pfCreateUpdate();" class="btn btn-lg btn-primary">
+                    Adicionar
+                  </button>				
+				  <button type="button" id="retrieveButton" onclick="pfRetrieve();" class="btn btn-lg btn-primary">
+                    Pesquisar
+                  </button>			  
+                </div>
+              </form>
+            </div>
+          </div><!--// .panel -->
+        </div><!--// .col-md -->
+      </div><!--// .row -->
+    </div><!--// .container -->
+
+    <script src="js/jquery-2.2.2.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+      // Próximo ID simulado
+      var _nextId = 1;
+      // ID simulado que está sendo editado
+      var _activeId = 0;
+	  
+	  $(document).ready(function(){
+	  
+		$.ajax({
+			type: 'GET',
+			url: "http://localhost:8080/contas/pessoas-fisicas",
+			dataType: 'json',
+			data: {	
+				"nomeCompleto": $("#pf_nome").val(),
+				"cpf": $("#pf_cpf").val(),
+			},
+			success: function(data, textStatus, jqXHR) {
+				//console.log(JSON.stringify(data));
+				var lista = data.lista;
+				$.each(lista, function(index,value){
+					//console.log(value)
+					pfAddToTable(value,index);
+				});				
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.log(errorThrown);
+			}
+		});
+	  })
+	  
+	  function printMsg(msg) {
+		$("#msg").text(msg);
+	  }
+	  
+  	  function printMsgInput(msg) {
+	    
+		$("#msgInput").text(' '+msg+' ');
+	  }
+
+      function formClear(){
+		$("#pf_id").val("");
+        $("#pf_nome").val("");
+        $("#pf_cpf").val("");
+        $("#pf_data_nascimento").val("");
+      }
+	
+	  
+      function pfBuildTableRow(data, index){
+		
+        var row = "<tr>" +
+		  "<td>" + data.id + "</td>" +
+          "<td>" + data.nomeCompleto + "</td>" +
+          "<td>" + data.cpf + "</td>" +
+          "<td>" + data.dataNascimentFormatada + "</td>" +
+          "<td>" +
+            "<button type='button' " +
+              "onclick='pfDisplay(this);' " +
+              "class='btn btn-default'" +
+              "data-id='" + index + "'>" +
+              "<span class='glyphicon glyphicon-edit'></span>" +
+            "</button>" +
+          "</td>" +
+          "<td>" +
+            "<button type='button' " +
+              "onclick='pfDelete(this);' " +
+              "class='btn btn-default'" +
+              "data-id='" + index + "'>" +
+              "<span class='glyphicon glyphicon-remove'></span>" +
+            "</button>" +
+          "</td>" +
+        "</tr>"
+
+        return row;
+      }
+		
+		
+      function pfAddToTable(data, index){
+        // Primeiro verifica se a tag <tbody> existe. Adiciona um caso não exista
+        if ($("#pfTable tbody").length == 0){
+          $("#pfTable").append("<tbody></tbody>");
+        }
+
+        // Adiciona na Tabela
+        $("#pfTable tbody").append(pfBuildTableRow(data, index));
+
+      }
+		
+
+      function pfDelete(button_delete){
+        $(button_delete).parents("tr").remove();
+      }
+
+      function pfDisplay(button_edit){
+        var row = $(button_edit).parents("tr");
+        var cols = row.children("td");
+
+        _activeId = $($(cols[3]).children("button")[0]).data("id");
+
+        $("#pf_nome").val($(cols[0]).text());
+        $("#pf_cpf").val($(cols[1]).text());
+        $("#pf_data_nascimento").val($(cols[2]).text());
+
+        // Mudar o texto do Botão
+        $("#updateButton").text("Atualizar");
+      }
+
+      function pfUpdateInTable(id){
+        // Encontra o  na tabela
+        var row = $("#pfTable button[data-id='" + id + "']").parents("tr")[0];
+
+        // Adiciona a linha modifica na tabela
+        $(row).after(pfBuildTableRow());
+
+        // Remover a linha antiga
+        $(row).remove();
+
+        // Limpar o formulário
+        formClear();
+
+        // Mudar o texto do Botão
+        $("#updateButton").text("Atualiar");
+      }
+	  
+	 function pfRetrieve() {
+		
+		// Reeinicia a te
+		if ($("#pfTable tbody").length > 0){
+          $("#pfTable tbody").remove();
+        }
+		
+		if ($("#pf_data_nascimento").val()) {
+			printMsgInput('Data de nascimento não é utilizado como parâmetro de pesquisa');
+			return;
+		}
+		printMsgInput('');
+		
+		$("#msgInput").val("");
+		
+		$.ajax({
+			type: 'GET',
+			url: "http://localhost:8080/contas/pessoas-fisicas",
+			dataType: 'json',
+			data: {
+			    "nomeCompleto": $("#pf_nome").val(),
+				"cpf": $("#pf_cpf").val(),
+			},
+			success: function(data, textStatus, jqXHR) {
+						
+				var lista = data.lista;
+				$.each(lista, function(index,value){
+					pfAddToTable(value,index);
+				});				
+				printMsg(data.msg);
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.log(errorThrown);
+			}
+		});
+	  }
+	  
+	 function pfCreateUpdate() {
+		$("#msgInput").val("");
+		
+		if ($("#updateButton").text() == "Atualizar") {
+			pfAtualizar();
+		}else {
+			pfCriar();
+		}		
+	  }
+	  
+	  function pfAtualizar() {
+		alert('implementar');
+		$.ajax({
+			type: 'PUT',
+			url: "http://localhost:8080/contas/pessoas-fisicas",
+			dataType: 'json',
+			data: {
+			    "nomeCompleto": $("#pf_nome").val(),
+				"cpf": $("#pf_cpf").val(),
+				"dataFormatada" : $("#pf_data_nascimento").val(),
+			},
+			success: function(data, textStatus, jqXHR) {
+				
+				if (data.status != 'OK'){
+					$("#pfTable tbody").remove();
+					$("#msgInput").val("");
+					printMsg(data.msg);
+					$("#pf_nome").focus();
+					return;
+				}
+			
+				printMsgInput('');
+				$("#pfTable tbody").remove();				
+				printMsg(data.msg);
+				
+				var objeto = data.objeto;
+				pfAddToTable(objeto,0);				
+				
+				if (data.status == 'OK'){
+					formClear();
+					$("#pf_nome").focus();
+					$("#updateButton").text("Adicionar");
+				}
+
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.log(errorThrown);
+			}
+		});	  
+	  }
+	  
+	 function pfCriar() {
+	  
+		$.ajax({
+			type: 'POST',
+			url: "http://localhost:8080/contas/pessoas-fisicas",
+			dataType: 'json',
+			data: {
+			    "nomeCompleto": $("#pf_nome").val(),
+				"cpf": $("#pf_cpf").val(),
+				"dataFormatada" : $("#pf_data_nascimento").val(),
+			},
+			success: function(data, textStatus, jqXHR) {
+				
+				if (data.status != 'OK'){
+					$("#pfTable tbody").remove();
+					$("#msgInput").val("");
+					printMsg(data.msg);
+					$("#pf_nome").focus();
+					return;
+				}
+			
+				printMsgInput('');
+				$("#pfTable tbody").remove();				
+				printMsg(data.msg);
+				
+				var objeto = data.objeto;
+				pfAddToTable(objeto,0);				
+				
+				if (data.status == 'OK'){
+					formClear();
+					// Mantém o foco no campo nome
+					$("#pf_nome").focus();
+				}
+
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.log(errorThrown);
+			}
+		});	  
+	 }
+	 
+
+
+    </script>
+  </body>
+</html>

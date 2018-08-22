@@ -4,7 +4,7 @@ CREATE TABLE `aporte` (
   `codigo` varchar(50) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQUE_CODIGO_APORTE` (`codigo`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `conta` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -37,7 +37,7 @@ CREATE TABLE `pessoa` (
   PRIMARY KEY (`id`),
   KEY `pessoa_tipo_pessoa_fk` (`id_tipo_pessoa`),
   CONSTRAINT `pessoa_tipo_pessoa_fk` FOREIGN KEY (`id_tipo_pessoa`) REFERENCES `tipo_pessoa` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `pessoa_fisica` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -49,7 +49,7 @@ CREATE TABLE `pessoa_fisica` (
   UNIQUE KEY `pessoa_fisica_un` (`cpf`),
   KEY `pessoa_fisica_pessoa_fk` (`id_pessoa`),
   CONSTRAINT `pessoa_fisica_pessoa_fk` FOREIGN KEY (`id_pessoa`) REFERENCES `pessoa` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `pessoa_juridica` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -100,7 +100,7 @@ CREATE TABLE `tipo_status_transacao` (
 
 CREATE TABLE `transacao` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `data_transacao` date NOT NULL,
+  `data_transacao` datetime NOT NULL,
   `valor` decimal(10,2) NOT NULL,
   `descricao_status_transacao` varchar(255) NOT NULL,
   `id_tipo_status_transacao` int(11) unsigned NOT NULL,
@@ -108,15 +108,18 @@ CREATE TABLE `transacao` (
   `id_aporte` int(11) unsigned DEFAULT NULL,
   `id_conta_origem` int(11) unsigned DEFAULT NULL,
   `id_conta_destino` int(11) unsigned DEFAULT NULL,
+  `id_transferencia_estornado` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `transacao_aporte_fk` (`id_aporte`),
   KEY `transacao_tipo_status_transacao_fk` (`id_tipo_status_transacao`),
   KEY `transacao_tipo_acao_transacao_fk` (`id_tipo_acao_transacao`),
   KEY `transacao_conta_fk` (`id_conta_origem`),
   KEY `transacao_conta_fk_1` (`id_conta_destino`),
+  KEY `transacao_id_trasferencia_estornado` (`id_transferencia_estornado`),
   CONSTRAINT `transacao_aporte_fk` FOREIGN KEY (`id_aporte`) REFERENCES `aporte` (`id`),
   CONSTRAINT `transacao_conta_fk` FOREIGN KEY (`id_conta_origem`) REFERENCES `conta` (`id`),
   CONSTRAINT `transacao_conta_fk_1` FOREIGN KEY (`id_conta_destino`) REFERENCES `conta` (`id`),
+  CONSTRAINT `transacao_id_trasferencia_estornado` FOREIGN KEY (`id_transferencia_estornado`) REFERENCES `transacao` (`id`),
   CONSTRAINT `transacao_tipo_acao_transacao_fk` FOREIGN KEY (`id_tipo_acao_transacao`) REFERENCES `tipo_acao_transacao` (`id`),
   CONSTRAINT `transacao_tipo_status_transacao_fk` FOREIGN KEY (`id_tipo_status_transacao`) REFERENCES `tipo_status_transacao` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

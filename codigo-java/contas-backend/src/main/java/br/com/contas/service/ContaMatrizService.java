@@ -46,7 +46,7 @@ public class ContaMatrizService {
 			
 			Long idConta = criarContaMatriz(nomeConta, idPessoa);
 
-			return contaService.recuperarConta(idConta);
+			return contaService.carregarConta(idConta);
 
 		} catch (ServiceException e) {
 			logger.error("Erro", e);
@@ -89,7 +89,7 @@ public class ContaMatrizService {
 		Long idContaPrincipal = null;
 		
 		Long idConta = contaService.criarConta(nomeConta, idPessoa, idTipoConta, idSituacaoConta, nivel, idContaPai, idContaPrincipal);
-		Conta conta = contaService.recuperarConta(idConta);
+		Conta conta = contaService.carregarConta(idConta);
 		conta.setIdContaPrincipal(idConta);
 		contaService.atualizarConta(conta);
 		return idConta;
@@ -104,7 +104,7 @@ public class ContaMatrizService {
 
 			Long idPessoa = pessoaJuridicaService.recuperarIdPorCnpj(cnpj);
 			Long idConta = criarContaMatriz(nomeConta, idPessoa);
-			return contaService.recuperarConta(idConta);
+			return contaService.carregarConta(idConta);
 		} catch (ServiceException e) {
 			throw new ServiceException(e.getMessage(), e);
 		} catch (Exception e) {

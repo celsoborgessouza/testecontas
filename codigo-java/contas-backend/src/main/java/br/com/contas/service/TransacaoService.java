@@ -16,7 +16,7 @@ import br.com.contas.domain.rdbs.Aporte;
 import br.com.contas.domain.rdbs.Conta;
 import br.com.contas.domain.rdbs.Transacao;
 import br.com.contas.service.exception.ServiceException;
-import br.com.contas.service.exception.ValidaTransacaoService;
+
 
 @Service
 public class TransacaoService {
@@ -44,6 +44,8 @@ public class TransacaoService {
 	@Autowired
 	AporteService aporteService;
 
+	
+
 	/**
 	 * Entrada de valores diretamente na Conta Matriz, através de uma transação qualquer
      *
@@ -60,7 +62,7 @@ public class TransacaoService {
 	 */
 	@Transactional(rollbackFor = Exception.class)
 	public Transacao realizarAporte(Long idContaDestino, BigDecimal valorAporte, String descricao)
-			throws ServiceException, ValidaTransacaoService {
+			throws ServiceException {
 
 		try {
 			
@@ -71,7 +73,7 @@ public class TransacaoService {
 			// Aporte é de uma conta qualquer, então conta de origem é null
 			Long idContaOrigem = null; 
 
-			Conta conta = contaSerivice.recuperarConta(idContaDestino);
+			Conta conta = contaSerivice.carregarConta(idContaDestino);
 
 			// validar se conta é matriz, não precisa ter uma conta pai
 			boolean isContaMatriz = isContaMatriz(conta);
@@ -82,7 +84,7 @@ public class TransacaoService {
 			// validar se conta é ativa
 			boolean isContaAtiva = isContaAtivo(conta);
 			if (!isContaAtiva) {
-				salvarTransacaoNaoContaAtiva(idAcaoAporte, idContaOrigem, idContaDestino, valorAporte);
+				return salvarTransacaoContaDestinoNaoAtiva(idAcaoAporte, idContaOrigem, idContaDestino, valorAporte);
 			}
 
 			// salvar aporte com um identificador alfanumerico único e recuperar identificador
@@ -121,21 +123,24 @@ public class TransacaoService {
 	}
 
 
-	private Transacao salvarTransacaoNaoContaAtiva(Long idAcaoAporte, Long idContaOrigem, Long idContaDestino, BigDecimal aporte) throws ValidaTransacaoService, ServiceException  {
+	private Transacao salvarTransacaoContaDestinoNaoAtiva(Long idAcaoAporte, Long idContaOrigem, Long idContaDestino, BigDecimal aporte) throws  ServiceException  {
 		
-		String descricaoStatusTransacao = "Somente conta ativa pode receber aporte";
+		String descricaoStatusTransacao = "Somente conta ativa pode receber transferência";
 		Long idTipoStatus = tipoStatusTranacao.recuperarStatusFalha();
 		return registrarTransacao(idAcaoAporte, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, aporte);
 	}
 
 	private Transacao salvarTranacaoNaoContaMatriz(Long idAcaoAporte, Long idContaOrigem, Long idContaDestino, BigDecimal aporte)
-			throws ServiceException, ValidaTransacaoService {
+			throws ServiceException {
 		
-		String descricaoStatusTransacao = "Somente conta matriz pode receber aporte";
+		String descricaoStatusTransacao = "Somente conta matriz pode receber transferência";
 		Long idTipoStatus = tipoStatusTranacao.recuperarStatusFalha();
 		return registrarTransacao(idAcaoAporte, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, aporte);
 	}
 	
+
+
+
 	private Transacao salvarTransacaoAporte(Long idAcaoAporte, Long idContaOrigem, Long idContaDestino, BigDecimal valor,
 			Long idAporte) throws ServiceException {
 		
@@ -148,15 +153,22 @@ public class TransacaoService {
 
 
 	private Transacao registrarTransacao(Long idAcao, Long idContaOrigem, Long idContaDestino, Long idTipoStatus,
-			String descricaoStatusTransacao, BigDecimal valor) {
+			String descricaoStatusTransacao, BigDecimal valor, Long idAporte) {
 
 		return registrarTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor,
-				null);
+				idAporte, null);
+
+	}
+	
+	private Transacao registrarTransacao(Long idAcaoAporte, Long idContaOrigem, Long idContaDestino, Long idTipoStatus,
+			String descricaoStatusTransacao, BigDecimal aporte) {
+		
+		return registrarTransacao(idAcaoAporte, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, aporte, null);
 
 	}
 
 	private Transacao registrarTransacao(Long idAcao, Long idContaOrigem, Long idContaDestino, Long idTipoStatus,
-			String descricaoStatusTransacao, BigDecimal valor, Long idAporte) {
+			String descricaoStatusTransacao, BigDecimal valor, Long idAporte, Long idTransferenciaEstornado) {
 
 		Transacao transacao = new Transacao();
 		transacao.setDataTransacao(new Date());
@@ -168,6 +180,7 @@ public class TransacaoService {
 		transacao.setIdContaDestino(idContaDestino);
 		transacao.setIdContaOrigem(idContaOrigem);
 		transacao.setDataTransacao(new Date());
+		transacao.setIdTransferenciaEstornado(idTransferenciaEstornado);
 		
 		Long id = (Long) dao.save(transacao);
 		return dao.load(id);
@@ -199,7 +212,7 @@ public class TransacaoService {
 	 * @throws ValidaTransacaoService 
 	 */
 	@Transactional(rollbackFor = Exception.class)
-	public Transacao estronarAporte(String codigoAprote) throws  ValidaTransacaoService, ServiceException {
+	public Transacao estronarAporte(String codigoAprote) throws ServiceException {
 		
 		
 		try {
@@ -207,6 +220,13 @@ public class TransacaoService {
 			validarEstornoAporte(codigoAprote);
 			
 			Long idAcaoEstornoAporte = tipoAcaoTransacao.recuperarEstornoAporte();
+			
+			// validar estorno já foi realizado para o identificador do aporte
+			boolean isEstornoRealizado = isEstornoJaRealizado(codigoAprote, idAcaoEstornoAporte);
+			if (isEstornoRealizado) {
+				return recuperarTransacaoEstornoJaRealizadoESalvar(codigoAprote, idAcaoEstornoAporte);
+			}					
+
 			Transacao transacao = recuperarTransacaoAporte(codigoAprote);
 			
 			// conta qualquer que solicitou o estorno e vai ser creditada
@@ -217,14 +237,8 @@ public class TransacaoService {
 			BigDecimal valorAporte = transacao.getValor();
 			
 			
-			// validar estorno já foi realizado para o identificador do aporte
-			boolean isEstornoRealizado = isEstornoJaRealizado(codigoAprote);
-			if (isEstornoRealizado) {
-				salvarTransacaoEstornoJaRealizado(codigoAprote, idAcaoEstornoAporte, idContaDestino, idContaOrigem,
-						valorAporte);
-			}					
 			
-			Conta conta = contaSerivice.recuperarConta(idContaOrigem);
+			Conta conta = contaSerivice.carregarConta(idContaOrigem);
 			// Validar se é conta matriz
 			boolean isContaMatriz = isContaMatriz(conta);
 			if (!isContaMatriz) {
@@ -243,9 +257,19 @@ public class TransacaoService {
 			
 			throw new ServiceException(e.getMessage(), e);
 		} catch (Exception e) {
+			logger.info("log", e);
 			throw new ServiceException("Não foi possível realizar estorno de aporte.", e);
 		}
 		
+	}
+
+
+	private Transacao recuperarTransacaoEstornoJaRealizadoESalvar(String codigoAprote, Long idAcaoEstornoAporte)
+			throws ServiceException {
+		Long idTipoStatusSucesso = tipoStatusTranacao.recuperarStatusSucesso();
+		Transacao transacao = dao.recuperarEstornoJaRealizado(codigoAprote, idAcaoEstornoAporte, idTipoStatusSucesso);
+		return salvarTransacaoEstornoJaRealizado(codigoAprote, idAcaoEstornoAporte, transacao.getIdContaDestino(), transacao.getIdContaOrigem(),
+				transacao.getValor());
 	}
 
 
@@ -262,23 +286,22 @@ public class TransacaoService {
 		Long idTipoStatus = tipoStatusTranacao.recuperarStatusSucesso();
 
 		return registrarTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor,
-				idAporte);
+				idAporte );
 	}
 
 
-	private boolean isEstornoJaRealizado(String codigoAprote) throws ServiceException {
+	private boolean isEstornoJaRealizado(String codigoAporte, Long idAcaoEstornoAporte) throws ServiceException {
 		Long idTipoStatusSucesso = tipoStatusTranacao.recuperarStatusSucesso();
-		boolean isEstornoRealizado = dao.isEstornoJaRealizado(codigoAprote, idTipoStatusSucesso, idTipoStatusSucesso);
+		boolean isEstornoRealizado = dao.isEstornoAporteJaRealizado(codigoAporte, idAcaoEstornoAporte, idTipoStatusSucesso);
 		return isEstornoRealizado;
 	}
 
 
-	private void salvarTransacaoEstornoJaRealizado(String codigoAprote, Long idAcaoEstornoAporte, Long idContaDestino,
-			Long idContaOrigem, BigDecimal aporteRecebido) throws ServiceException, ValidaTransacaoService {
+	private Transacao salvarTransacaoEstornoJaRealizado(String codigoAprote, Long idAcaoEstornoAporte, Long idContaDestino,
+			Long idContaOrigem, BigDecimal aporteRecebido) throws ServiceException {
 		String descricaoStatusTransacao = String.format("Já foi realiadao um estorno para identificador de aporte %s", codigoAprote);
 		Long idTipoStatus = tipoStatusTranacao.recuperarStatusFalha();
-		registrarTransacao(idAcaoEstornoAporte, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, aporteRecebido);
-		throw new ValidaTransacaoService(descricaoStatusTransacao);
+		return registrarTransacao(idAcaoEstornoAporte, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, aporteRecebido );
 	}
 
 	private void validarEstornoAporte(String codigoAprote) throws ServiceException {
@@ -292,6 +315,7 @@ public class TransacaoService {
 		try {
 			return dao.recuperarPorCodigoAporte(codigoAprote);
 		} catch (Exception e) {
+			logger.error("error", e);
 			throw new ServiceException("Não foi possível recuperar transação pelo código");
 		}
 	}
@@ -313,27 +337,34 @@ public class TransacaoService {
 	 * @throws ValidaTransacaoService 
 	 * @throws ServiceException 
 	 */
-	@Transactional(rollbackFor = Exception.class, noRollbackFor = ValidaTransacaoService.class)
-	public Transacao realizarTransferencia(Long idContaOrigem, Long idContaDestino, BigDecimal valor) throws ServiceException, ValidaTransacaoService  {
+	@Transactional(rollbackFor = Exception.class)
+	public Transacao realizarTransferencia(Long idContaOrigem, Long idContaDestino, BigDecimal valor) throws ServiceException  {
 		
 		try {
+			
+			Transacao transacao = null;
+			
 			validarParametroTransferencia(idContaOrigem, idContaDestino, valor);
 			
 			/*
 			 * Apenas contas ativas poderm receber transacoes
 			 * Conta matriz (destino) não pode receber transferência de outras contas 
 			 */
-			Conta contaDestino = validarTransacaoContaDestino(idContaOrigem, idContaDestino, valor);
+			Conta contaDestino = contaSerivice.carregarConta(idContaDestino);
+			transacao = validarContaDestino(contaDestino, idContaOrigem, valor);
+			if (transacao != null) {
+				return transacao;
+			}
+
 			
 			// ------------------------------------------------------------
 			// SE CONTA ORIGEM É MATRIZ
 			// ------------------------------------------------------------						
 			// Se conta origem é matriz então pode fazer transferência para uma conta destino filial qualquer
 			
-			Conta contaOrigem = contaSerivice.recuperarConta(idContaOrigem);
+			Conta contaOrigem = contaSerivice.carregarConta(idContaOrigem);
 			boolean isContaOrigemMatriz = isContaMatriz(contaOrigem);
 			if (isContaOrigemMatriz) {
-
 				return exectuarTransacaoTransferencia(contaDestino, contaOrigem, valor);
 			}
 			
@@ -342,13 +373,12 @@ public class TransacaoService {
 			// ------------------------------------------------------------											
 			// Se conta origem é filial então pode fazer transferência para conta destino filial que esteja abaixo da mesma árvore
 			// . se idContaPrincipal for igual pode transferir
-			Long idContaPaiDestino = contaDestino.getIdContaPai();
-			Long idContaPrinciapal = contaSerivice.recuperarContaPrincipal(idContaPaiDestino);
 			Long idContaPrincipalOrigem = contaOrigem.getIdContaPrincipal(); 
-			if (idContaPrincipalOrigem != idContaPrinciapal) {
+			Long idContaPrincipalDestino = contaDestino.getIdContaPrincipal();
+			if (idContaPrincipalDestino != idContaPrincipalOrigem) {
 				
 				Long idAcaoTransferencia = tipoAcaoTransacao.recuperarTransferencia();
-				salvarTransacaoNaoEstaNaMesmaArvore(idAcaoTransferencia, idContaOrigem, idContaDestino, valor);
+				return salvarTransacaoContasNaoEstaoNaMesmaArvore(idAcaoTransferencia, idContaOrigem, idContaDestino, valor);
 			}
 			
 			return exectuarTransacaoTransferencia(contaDestino, contaOrigem, valor);
@@ -364,13 +394,32 @@ public class TransacaoService {
 	}
 
 
-	private void salvarTransacaoNaoEstaNaMesmaArvore(Long idAcao, Long idContaOrigem, Long idContaDestino,
-			BigDecimal valor) throws ServiceException, ValidaTransacaoService {
+	private Transacao validarContaDestino(Conta contaDestino, Long idContaOrigem, BigDecimal valor)
+			throws ServiceException {
+		
+		Long idContaDestino = contaDestino.getId();
+		boolean isContaAtiva = isContaAtivo(contaDestino);
+		if (!isContaAtiva) {
+			Long idAcaoTransferencia = tipoAcaoTransacao.recuperarTransferencia();
+			return salvarTransacaoContaDestinoNaoAtiva(idAcaoTransferencia, idContaOrigem, idContaDestino, valor);
+		}
+		
+		boolean isContaDestinoMatriz = isContaMatriz(contaDestino);
+		if (isContaDestinoMatriz) {
+			Long idAcaoTransferencia = tipoAcaoTransacao.recuperarTransferencia();
+			return salvarTransacaoContaDestinoNaoMatriz(idAcaoTransferencia, idContaOrigem, idContaDestino, valor);
+		}
+		return null;
+	}
+
+
+	private Transacao salvarTransacaoContasNaoEstaoNaMesmaArvore(Long idAcao, Long idContaOrigem, Long idContaDestino,
+			BigDecimal valor) throws ServiceException  {
 		
 		String descricaoStatusTransacao = "Conta origem e conta destino não fazem parte da mesa árvore";
 		Long idTipoStatus = tipoStatusTranacao.recuperarStatusFalha();
-		registrarTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor);
-		throw new ValidaTransacaoService(descricaoStatusTransacao);
+		return registrarTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor );
+
 		
 	}
 
@@ -391,45 +440,13 @@ public class TransacaoService {
 		return salvarTransacaoTransferencia(idAcaoTransferencia, contaOrigem.getId(), contaDestino.getId(), valor);
 	}
 
-	/**
-	 * Apenas contas ativas poderm receber transacoes
-	 * 
-	 * Conta matriz não pode receber transferência de outras contas
-	 * 
-	 * @param idContaOrigem
-	 * @param idContaDestino
-	 * @param valor
-	 * @return
-	 * @throws ServiceException
-	 * @throws ValidaTransacaoService
-	 */
-	private Conta validarTransacaoContaDestino(Long idContaOrigem, Long idContaDestino, BigDecimal valor)
-			throws ServiceException, ValidaTransacaoService {
-		
-		Conta contaDestino = contaSerivice.recuperarConta(idContaDestino);
-		
-		boolean isContaAtiva = isContaAtivo(contaDestino);
-		if (!isContaAtiva) {
-			Long idAcaoTransferencia = tipoAcaoTransacao.recuperarTransferencia();
-			salvarTransacaoNaoContaAtiva(idAcaoTransferencia, idContaOrigem, idContaDestino, valor);
-		}
-		
-		boolean isContaDestinoMatriz = isContaMatriz(contaDestino);
-		if (isContaDestinoMatriz) {
-			Long idAcaoTransferencia = tipoAcaoTransacao.recuperarTransferencia();
-			salvarTransacaoNaoPodeTransferirContaMatriz(idAcaoTransferencia, idContaOrigem, idContaDestino, valor);
-		}
-		
-		return contaDestino;
-	}
 
-	private void salvarTransacaoNaoPodeTransferirContaMatriz(Long idAcaoTransferencia, Long idContaOrigem,
-			Long idContaDestino, BigDecimal valor) throws ValidaTransacaoService, ServiceException {
+	private Transacao salvarTransacaoContaDestinoNaoMatriz(Long idAcaoTransferencia, Long idContaOrigem,
+			Long idContaDestino, BigDecimal valor) throws ServiceException {
 		
 		String descricaoStatusTransacao = "Conta matriz não pode receber transferência de outras contas";
 		Long idTipoStatus = tipoStatusTranacao.recuperarStatusFalha();
-		registrarTransacao(idAcaoTransferencia, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor);
-		throw new ValidaTransacaoService(descricaoStatusTransacao);
+		return registrarTransacao(idAcaoTransferencia, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor );
 	}
 
 
@@ -438,7 +455,7 @@ public class TransacaoService {
 		
 		String descricaoStatusTransacao = "Transacao entre contas realizada com sucesso";
 		Long idTipoStatus = tipoStatusTranacao.recuperarStatusSucesso();
-		return registrarTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor);
+		return registrarTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor );
 	}
 
 
@@ -470,10 +487,110 @@ public class TransacaoService {
 	 */
 	@Transactional(rollbackFor = Exception.class)
 	public Transacao estornoTransferecnia(Long idTransacao) throws ServiceException {
-		//TODO
-		// verificar conta destino está ativa
 		
-		return null;
+		
+		Long idAcaoEstornoTransferencia = tipoAcaoTransacao.recuperarEstorno();
+		validarParametroEstornoTransacao(idTransacao, idAcaoEstornoTransferencia);
+		
+		Transacao transacao = validarTranacao(idTransacao);
+		// conta que vai ser creditada é a conta que originou a transação 
+		Long idContaDestino = transacao.getIdContaOrigem();
+		// conta que vai ser debitada é a conta de destino da transação 
+		Long idContaOrigem = transacao.getIdContaDestino();
+		BigDecimal valor = transacao.getValor();
+		
+		
+		// validar estorno já foi realizado
+		boolean isEstornoRealizado = isEstornoJaRealizado(idTransacao, idAcaoEstornoTransferencia);
+		if (isEstornoRealizado) {
+			return salvarTransacaoEstornoJaRealizado(idTransacao, idAcaoEstornoTransferencia, idContaOrigem, idContaDestino, valor);
+		}
+				
+		return exectuarTransacaoEstornoTransferencia(idAcaoEstornoTransferencia, idContaOrigem, idContaDestino, valor, idTransacao);
+	}
+
+
+	private Transacao validarTranacao(Long idTransacao) throws ServiceException {
+		Transacao transacao = dao.get(idTransacao);
+		
+		
+		if (transacao == null) {
+			throw new ServiceException("Não foi possível recuperar transação válida.");
+		}
+		
+		// Validar se tranação é do tipo TRANSFERENCIA e foi executada com sucesso
+		// recuperar transação válida
+		Long idAcaoTransferencia = tipoAcaoTransacao.recuperarTransferencia();
+		if (! (idAcaoTransferencia == transacao.getIdTipoAcaoTransacao() && transacao.getIdTipoStatusTransacao() == 1)   ) {
+			throw new ServiceException("Identificador não refere a uma transação de transferência com status de sucesso !!");
+		}
+		return transacao;
+	}
+
+
+	private Transacao salvarTransacaoEstornoJaRealizado(Long idTransacao, Long idAcaoEstornoTransacao, Long idContaOrigemm, Long idContaDestino, BigDecimal valor) throws ServiceException {
+		
+		String descricaoStatusTransacao = String.format("Já foi realiadao um estorno para a transacao %d", idTransacao);
+		Long idTipoStatus = tipoStatusTranacao.recuperarStatusFalha();
+		return registrarTransacao(idAcaoEstornoTransacao, idContaOrigemm, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor );
+	}
+
+
+	private Transacao exectuarTransacaoEstornoTransferencia(Long idAcaoEstornoTransferencia, Long idContaOrigem,
+			Long idContaDestino, BigDecimal valor, Long idTransferenciaEstornado) throws ServiceException {
+		
+
+		// Debitar valor na conta origem
+		Conta contaOrigem = contaSerivice.carregarConta(idContaOrigem);
+		BigDecimal saldoAtualContaOrigem = contaOrigem.getSaldo();
+		debitarValorConta(contaOrigem.getId(), saldoAtualContaOrigem, valor );
+		
+		// Creditar valor na conta destino
+		Conta contaDestino = contaSerivice.carregarConta(idContaDestino);
+		BigDecimal saldoAtualContaDestino = contaDestino.getSaldo();
+		creditarValorConta(contaDestino.getId(), saldoAtualContaDestino, valor);
+		
+		// salvar trasnacao
+		return salvarTransacaoEstornoTransferencia(idAcaoEstornoTransferencia, contaOrigem.getId(), contaDestino.getId(), valor, idTransferenciaEstornado);
+	}
+
+
+	private Transacao salvarTransacaoEstornoTransferencia(Long idAcao, Long idContaOrigem, Long idContaDestino,
+			BigDecimal valor, Long idTransferenciaEstornado) throws ServiceException {
+		
+		String descricaoStatusTransacao = String.format("Transacao estorno de transferencia entre as contas %d e %d realizado com sucesso", idContaOrigem, idContaDestino);
+		Long idTipoStatus = tipoStatusTranacao.recuperarStatusSucesso();
+		return registrarEstornoTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor, idTransferenciaEstornado);
+	}
+
+
+	private Transacao registrarEstornoTransacao(Long idAcao, Long idContaOrigem, Long idContaDestino, Long idTipoStatus,
+			String descricaoStatusTransacao, BigDecimal valor, Long idTransferenciaEstornado) {
+		
+		return registrarTransacao(idAcao, idContaOrigem, idContaDestino, idTipoStatus, descricaoStatusTransacao, valor,
+				null, idTransferenciaEstornado);
+
+	}
+
+
+	private boolean isEstornoJaRealizado(Long idTransacao, Long idAcaoEstornoAporte) throws ServiceException {
+
+		Long idTipoStatusSucesso = tipoStatusTranacao.recuperarStatusSucesso();
+		boolean isEstornoRealizado = dao.isEstornoTransacaoJaRealizado(idTransacao, idAcaoEstornoAporte, idTipoStatusSucesso);
+		return isEstornoRealizado;
+	}
+
+
+	private void validarParametroEstornoTransacao(Long idTransacao, Long idAcaoEstornoTransacao) throws ServiceException {
+		
+		// validar se idTransacao foi informado
+		if (idTransacao == null) {
+			throw new ServiceException("Identificador da transação deve ser informado");
+		}
+		
+		if (idAcaoEstornoTransacao == null) {
+			throw new ServiceException("Não foi possível recuperar identificador de ação da trasação");
+		}
 	}
 
 
@@ -485,9 +602,15 @@ public class TransacaoService {
 	 * @return 
 	 * @throws ServiceException 
 	 */
+	@Transactional
 	public List<Transacao> recuperarHistoricoTransacoesPelaConta(Long idConta) {
 		
-		return dao.recuperarHistoricoTransacoesPelaConta(idConta);
+		try {
+			return dao.recuperarHistoricoTransacoesPelaConta(idConta);
+		} catch (Exception e) {
+			logger.error("erro:",e);
+		}
+		return null;
 	}
 	
 

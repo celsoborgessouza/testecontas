@@ -3,19 +3,23 @@ package br.com.contas.service;
 import java.math.BigDecimal;
 import java.util.Date;
 
-import org.hibernate.service.spi.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import br.com.contas.dao.ContaDAO;
 import br.com.contas.domain.rdbs.Conta;
+import br.com.contas.service.exception.ServiceException;
 
 @Service
 public class ContaService {
 	
 	@Autowired
 	private ContaDAO dao;
+	
+	@Autowired
+	private SituacaoContaService situacaoContaService;
 	
 	/**
 	 * 
@@ -55,15 +59,44 @@ public class ContaService {
 	 * 
 	 * @param idConta
 	 * @param idSituacaoConta
+	 * @return 
+	 * @throws br.com.contas.service.exception.ServiceException 
 	 */
 	@Transactional(rollbackFor = Exception.class)
-	public void atualizarSituacaoConta(Long idConta, Long idSituacaoConta) {
+	public void atualizarSituacaoConta(Long idConta, String nomeSituacao) throws ServiceException {
 		
-		Conta conta = new Conta();
-		conta.setId(idConta);
-		conta.setIdSituacaoConta(idSituacaoConta);
+		try {
+			validarParametroAlterarSituacaoConta(idConta, nomeSituacao);
+			
+			Long idSituacaoConta = recuperarIdSituacaoConta(nomeSituacao);
+			
+			Conta conta = recuperarPorId(idConta);
+			conta.setIdSituacaoConta(idSituacaoConta);
+			
+			atualizarConta(conta);
+		} catch (Exception e) {
+			throw new ServiceException("Não foi possível atualizar status da conta",e);
+		}
+	}
+
+
+
+	private Long recuperarIdSituacaoConta(String nomeSituacao) throws ServiceException {
+		Long idSituacaoConta = situacaoContaService.recuperarIdPorNome(nomeSituacao);
+		if (idSituacaoConta == null) {
+			throw new ServiceException(String.format("Não foi possível recuperar situação de conta %s", nomeSituacao));
+		}
+		return idSituacaoConta;
+	}
+
+
+
+	private void validarParametroAlterarSituacaoConta(Long idConta, String situacao) throws ServiceException {
 		
-		atualizarConta(conta);
+		verificarIdConta(idConta);
+		if (StringUtils.isEmpty(situacao)) {
+			throw new ServiceException("Nome da situação da conta deve ser informado");
+		}
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -82,46 +115,27 @@ public class ContaService {
 		dao.update(conta);
 	}
 	
-
-
-	public Conta recuperarConta(Long idConta) {
+	
+	public Conta recuperarPorId(Long idConta) throws ServiceException {
 		
-		if (idConta == null) {
-			throw new ServiceException("Identificador da conta deve ser informado");
-		}
+		verificarIdConta(idConta);
+		return dao.get(idConta);
+	}
+	
+	public Conta carregarConta(Long idConta) throws ServiceException {
 		
+		verificarIdConta(idConta);
 		return dao.load(idConta);
 	}
 
-	public Conta recuperarContaParaManipular(Long idConta) {
-		
+
+
+	private void verificarIdConta(Long idConta) throws ServiceException {
 		if (idConta == null) {
 			throw new ServiceException("Identificador da conta deve ser informado");
 		}
-		
-		return dao.get(idConta);
 	}
 
-	/**
-	 * Conta principal tem idContaPai = null
-
-	 * @param idContaPai 
-	 * @return
-	 */
-	public Long recuperarContaPrincipal(Long idContaPai) {
-		
-		if (idContaPai == null) {
-			
-		}
-		
-		do {
-			Conta conta = recuperarConta(idContaPai);
-			idContaPai = conta.getIdContaPai();
-			
-		} while (idContaPai != null) ;
-		
-		return idContaPai;
-	}
 
 
 }

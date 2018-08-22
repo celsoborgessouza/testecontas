@@ -1,7 +1,6 @@
 package br.com.contas.service;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -16,6 +15,7 @@ import org.springframework.util.StringUtils;
 import br.com.contas.dao.PessoaFisicaDAO;
 import br.com.contas.domain.rdbs.PessoaFisica;
 import br.com.contas.service.exception.ServiceException;
+import br.com.contas.utils.DateUtils;
 
 @Service
 @Transactional
@@ -42,7 +42,7 @@ public class PessoaFisicaService {
 	 * @throws Exception
 	 */
 	@Transactional(rollbackFor = Exception.class)
-	public Long criar(String cpf, String nomeCompleto, String dataNascimento) throws ServiceException {
+	public PessoaFisica criar(String cpf, String nomeCompleto, String dataNascimento) throws ServiceException {
 
 		try {
 			validarCamposCriacao(cpf, nomeCompleto, dataNascimento);
@@ -55,8 +55,10 @@ public class PessoaFisicaService {
 			}
 
 			PessoaFisica pessoaFisica = configurarPessoaFisica(cpf, nomeCompleto, dataNascimento, idPessoa);
-
-			return (Long) dao.save(pessoaFisica);
+			
+			Long id = (Long) dao.save(pessoaFisica);
+			return dao.get(id);
+			
 		} catch (ServiceException e) {
 			logger.error("Error", e);
 			throw new ServiceException(e.getMessage(), e);
@@ -92,7 +94,7 @@ public class PessoaFisicaService {
 	private Date stringToDate(String dataNascimento) throws ServiceException {
 
 		try {
-			return new SimpleDateFormat("dd/MM/yyyy").parse(dataNascimento);
+			return DateUtils.converterParaDate(dataNascimento);
 		} catch (ParseException e) {
 			throw new ServiceException("Data de nascimento com formato válido. Formato deve ser dd/MM/yyyy");
 		}
@@ -126,13 +128,9 @@ public class PessoaFisicaService {
 	private void validarCamposCriacao(String cpf, String nomeCompleto, String dataNascimento) throws ServiceException {
 		validarCpf(cpf);
 
-		if (StringUtils.isEmpty(nomeCompleto)) {
-			throw new ServiceException("'Nome Completo' não pode ser nulo");
-		}
+		validarNomeCompleto(nomeCompleto);
 
-		if (StringUtils.isEmpty(dataNascimento)) {
-			throw new ServiceException("'Data de Nascimento' não pode ser nulo");
-		}
+		validarDataNascimento(dataNascimento);
 
 	}
 
@@ -156,5 +154,76 @@ public class PessoaFisicaService {
 			throw new ServiceException("Não foi possível realizar todas as pessoas físicas", e);
 		}
 	}
+
+	public List<PessoaFisica> recuperar(String cpf, String nome) throws ServiceException {
+
+		try {
+			return dao.recuprar(cpf, nome);
+		} catch (Exception e) {
+			throw new ServiceException("Não foi possíve realizar a consulta de pessoa fisica por parâmetro", e);
+		}
+	}
+	
+	/**
+	 * São atualizados somente nome completo e data de nascimento
+	 * O cpf é utilizado para recupera o identificador da pessoa
+	 * 
+	 * @param cpf
+	 * @param nomeCompleto
+	 * @param dataFormatada
+	 * @return
+	 * @throws ServiceException 
+	 */
+	@Transactional(rollbackFor = Exception.class)
+	public PessoaFisica atualizar(String cpf, String nomeCompleto, String dataNascimento) throws ServiceException {
+		try {
+			
+			
+			validarCamposAtualizacao(cpf, nomeCompleto, dataNascimento);
+			
+			Date date = stringToDate(dataNascimento);
+			
+			PessoaFisica pessoaFisicaAtual = recuperarPorCpf(cpf);
+			pessoaFisicaAtual.setNomeCompleto(nomeCompleto);
+			pessoaFisicaAtual.setDataNascimento(date);
+			
+			Long id = pessoaFisicaAtual.getId();
+			
+			dao.update(pessoaFisicaAtual);
+			return dao.get(id);
+			
+		} catch (ServiceException e) {
+			logger.error("Error", e);
+			throw new ServiceException(e.getMessage(), e);
+		} catch (ConstraintViolationException e) {
+			logger.error("Erro", e);
+			throw new ServiceException(String.format("Já existe pessoa física cadastrada com o cpf: %s", cpf), e);
+		} catch (Exception e) {
+			logger.error("Error", e);
+			throw new ServiceException("Não foi possível criar pessoa física", e);
+		}
+
+	}
+
+	private void validarCamposAtualizacao(String cpf, String nomeCompleto, String dataNascimento) throws ServiceException {
+				
+		validarCpf(cpf);
+		validarNomeCompleto(nomeCompleto);
+		validarDataNascimento(dataNascimento);
+		
+	}
+
+	private void validarDataNascimento(String dataNascimento) throws ServiceException {
+		if (StringUtils.isEmpty(dataNascimento)) {
+			throw new ServiceException("'Data de Nascimento' não pode ser nulo");
+		}
+	}
+
+	private void validarNomeCompleto(String nomeCompleto) throws ServiceException {
+		if (StringUtils.isEmpty(nomeCompleto)) {
+			throw new ServiceException("'Nome Completo' não pode ser nulo");
+		}
+	}
+	
 
 }

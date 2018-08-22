@@ -49,6 +49,9 @@ public class Transacao implements Serializable {
 
 	@Column(name = "id_conta_destino")
 	private Long idContaDestino;
+	
+	@Column(name = "id_transferencia_estornado")
+	private Long idTransferenciaEstornado;
 
 	public Long getId() {
 		return id;
@@ -122,4 +125,13 @@ public class Transacao implements Serializable {
 		this.valor = valor;
 	}
 
+	public Long getIdTransferenciaEstornado() {
+		return idTransferenciaEstornado;
+	}
+
+	public void setIdTransferenciaEstornado(Long idTransferenciaEstornado) {
+		this.idTransferenciaEstornado = idTransferenciaEstornado;
+	}
+	
+	
 }

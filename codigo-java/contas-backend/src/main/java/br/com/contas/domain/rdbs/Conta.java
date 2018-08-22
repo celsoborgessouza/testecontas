@@ -132,8 +132,6 @@ public class Conta implements Serializable {
 	public void setIdContaPrincipal(Long idContaPrincipal) {
 		this.idContaPrincipal = idContaPrincipal;
 	}
-
-
 	
 	
 }

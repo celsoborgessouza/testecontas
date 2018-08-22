@@ -5,11 +5,5 @@
 <hibernate-configuration>
 	<session-factory>
 		<!-- Mapeamento das classes Java -->
-		<!-- 
-		<mapping class="br.com.contas.domain.rdbs.Pessoa" />
-		<mapping class="br.com.contas.domain.rdbs.TipoPessoa" />
-		<mapping class="br.com.contas.domain.rdbs.PessoaFisica" />
-		<mapping class="br.com.contas.domain.rdbs.PessoaJuridica" />
-		-->
 	</session-factory>
 </hibernate-configuration>

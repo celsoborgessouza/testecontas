@@ -10,6 +10,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.Transient;
+
+import br.com.contas.utils.DateUtils;
 
 @Entity(name = "pessoa_fisica")
 public class PessoaFisica implements Serializable {
@@ -36,6 +39,9 @@ public class PessoaFisica implements Serializable {
 	
 	@Column(name = "id_pessoa", insertable = true, updatable = true)
 	private Long idPessoa;
+	
+	@Transient
+	private String dataNascimentFormatada;
 
 	public Long getId() {
 		return id;
@@ -77,6 +83,13 @@ public class PessoaFisica implements Serializable {
 	public void setIdPessoa(Long idPessoa) {
 		this.idPessoa = idPessoa;
 	}
+
+	public String getDataNascimentFormatada() {
+		
+		Date data = getDataNascimento();
+		return DateUtils.converterParaFormatoPadrao(data);
+	}
+
 	
 	
 

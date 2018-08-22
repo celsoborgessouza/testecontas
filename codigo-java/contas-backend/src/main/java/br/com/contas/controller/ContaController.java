@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import br.com.contas.domain.rdbs.Conta;
 import br.com.contas.service.ContaFilialService;
 import br.com.contas.service.ContaMatrizService;
+import br.com.contas.service.ContaService;
 import br.com.contas.service.exception.ServiceException;
 import br.com.contas.utils.rest.Response;
 
@@ -23,6 +24,9 @@ public class ContaController {
 	
 	@Autowired
 	private ContaFilialService contaFiliaService;
+	
+	@Autowired
+	private ContaService contaService;
 	
 
 	@RequestMapping(value="/pessoas-fisicas/{cpf}/matrizes", method = RequestMethod.POST)
@@ -78,6 +82,19 @@ public class ContaController {
 		try {
 			Long idContaFilial = contaFiliaService.criarContaPessoaJuridica(nomeConta, cnpj, idContaPai);
 			return Response.ok("Cadastro de conta filial realizado !!!", idContaFilial);
+		} catch (ServiceException e) {	
+			return Response.service(e.getMessage(), e);
+		} catch (Exception e) {
+			return Response.exception("Sistema indisponível", e);
+		}
+	}
+
+	@RequestMapping(value="{idConta}/situacao/{nomeSituacao}",method = RequestMethod.PUT)
+	@ResponseBody
+	public ResponseEntity<?> atualiarStatus(@PathVariable("idConta") Long idConta, @PathVariable("nomeSituacao") String nomeSituacao) throws Exception {
+		try {
+			contaService.atualizarSituacaoConta(idConta, nomeSituacao);
+			return Response.ok(String.format("Conta atualizada para o stauts %s", nomeSituacao));
 		} catch (ServiceException e) {	
 			return Response.service(e.getMessage(), e);
 		} catch (Exception e) {

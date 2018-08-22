@@ -91,6 +91,7 @@ public abstract class HibernateDAO<T> implements IHibernateDAO<T> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public T load(Serializable id) {
+		
 		return (T) getSession().load(this.clazz, id);
 	}
 	

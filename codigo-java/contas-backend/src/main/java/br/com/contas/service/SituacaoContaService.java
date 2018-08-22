@@ -12,37 +12,30 @@ public class SituacaoContaService {
 	@Autowired
 	private SituacaoContaDAO dao;
 
+	public Long recuperarIdAtivo() throws ServiceException {
 
-	public Long recuperarIdAtivo() throws ServiceException  {
+		return recuperarIdPorNome("ATIVA");
+	}
+
+	public Long recuperarIdBloqueado() throws ServiceException {
+		
+		return recuperarIdPorNome("BLOQUEADO");
+	}
+
+	public Long recuperarIdCancelado() throws ServiceException  {
+
+		return recuperarIdPorNome("CANCELADOR");
+
+	}
+
+	public Long recuperarIdPorNome(String nomeSituacao) throws ServiceException {
 		
 		try {
 
-			return dao.recuperarIdPorNome("ATIVA");
+			return dao.recuperarIdPorNome(nomeSituacao);
 		} catch (Exception e) {
-			
+
 			throw new ServiceException("Falha ao recuperar situação da conta", e);
-		}
-	}
-
-	public Long recuperarIdBloqueado() throws Exception {
-		
-		try {
-			
-			return dao.recuperarIdPorNome("BLOQUEADO");
-		} catch (Exception e) {
-			
-			throw new Exception("Falha ao recuperar situação da conta", e);
-		}
-	}
-
-	public Long recuperarIdCancelador() throws Exception {
-		
-		try {
-			
-			return dao.recuperarIdPorNome("CANCELADOR");
-		} catch (Exception e) {
-			
-			throw new Exception("Falha ao recuperar situação da conta", e);
 		}
 	}
 
