@@ -1,4 +1,4 @@
-﻿/*
+/*
  teste - Vafasdfalidaões do modelo de negócio
 */
 
@@ -50,9 +50,15 @@ inner join tipo_acao_transacao tat on tat.id = t.id_tipo_acao_transacao
 left join aporte a on a.id = t.id
 where (t.id_conta_destino = 9 or t.id_conta_destino = 9);
 
+<<<<<<< HEAD
 /*
   API - TESTE
 */
+=======
+# ##################################
+# API
+# ##################################
+>>>>>>> aed15d2e8b603745e9cc9bdcd768aa8f2c68d02d
 
 Pessoas
 ---------
