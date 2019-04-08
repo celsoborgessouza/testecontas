@@ -50,11 +50,14 @@ inner join tipo_acao_transacao tat on tat.id = t.id_tipo_acao_transacao
 left join aporte a on a.id = t.id
 where (t.id_conta_destino = 9 or t.id_conta_destino = 9);
 
+# ##################################
+# API
+# ##################################
 
 Pessoas
 ---------
 /pessoas-fisicas (GET) - Recuperar todas as pessoas físicas ou utilza filtros (cpf, nomeCompleto)
-/pessoas-fisicas (POST) - Criar pessoa física, recebe dataNacimento no (corrigido) formato de string
+/pessoas-fisicas (POST) - Criar pessoa física, recebe dataNacimento na (escrito errado) formato de string
 /pessoas-fisicas/{cpf} (PUT)  - Atualiar os dados nomeCompleto, dataNascimento, a chave é o CPF
 
 /pessoas-juridicas (GET) - Recuperar todas as pessoas jurídicas
